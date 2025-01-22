@@ -32,15 +32,6 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-]
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -56,7 +47,7 @@ ROOT_URLCONF = 'DjangoWebIDS.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR,'employee')],
+        'DIRS': [os.path.join(BASE_DIR,'adminlte3/templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -143,5 +134,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',  
     'django.contrib.messages',  
     'django.contrib.staticfiles',  
-    'employee'  
-] 
+    # 'employee',
+    'adminlte3',
+]
+
+# Đường dẫn đến thư mục chứa các tệp media (ảnh, tài liệu...)
+MEDIA_URL = '/media/'  # URL để truy cập ảnh trong trình duyệt
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Đường dẫn tới thư mục trên hệ thống file

@@ -1,0 +1,347 @@
+{% extends 'adminlte/base.html' %}
+
+{% block content %}
+    <div class="container">
+        <h1 class="mb-4">Search Users</h1>
+
+        <!-- Thanh tìm kiếm -->
+        <form id="searchUserForm" method="GET" action="/users/search" class="mb-4">
+            <div class="input-group">
+                <input
+                    type="text"
+                    name="search"
+                    class="form-control"
+                    placeholder="Search by name or email"
+                    id="searchInput"
+                >
+                <button id="searchButton" type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+
+        <h1>Users</h1>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">Create New User</button>
+        
+        <table class="table mt-3">
+            <thead>
+                <tr>
+                    <th>Avatar</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                    <tr id="tr-{{user.id}}">
+                        {% if user.avatar %}
+                            <td><img src="{{user.avatar}}" alt="Uploaded Image" style="height:50px; width:50px"/></td>
+                        {% else %}
+                            <p>No image</p>
+                        {% endif %}
+                        <td>{{user.name}}</td>
+                        <td>{{user.email}}</td>
+                        <td>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editUserModal" data-id="{{user.id}}" data-name="{{user.name}}" data-email="{{user.email}}">
+                                Edit User
+                            </button>                           
+                            <!--DELETE USER FORM-->
+                            <form data-url="/users/delete?id={{user.id}}" method="DELETE" style="display:inline;">
+                                {% csrf_token %}
+                                 <div style="display:none;">
+                                    <input type="text" class="form-control" value="{{user.id}}">
+                                </div>
+                                <button type="submit" class="btn btn-danger" data-id="{{user.id}}">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div id="pagination" style="width:50%; justify-content:center">
+            <!-- Hiển thị các liên kết phân trang -->
+        </div>
+    </div>
+
+    <!--CREATE USER MODAL-->
+    <div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="createUserForm" action="/users/create" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="createUserModalLabel">Create User</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="avatar">Image</label>
+                            <input type="file" class="form-control" name="avatar" accept="image/*">
+                        </div>
+                        <div class="mb-3">
+                            <label for="name">Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password_confirmation">Confirm Password</label>
+                            <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success mt-3">Save User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!--EDIT USER INFO-->
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="editUserForm" method="PUT" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editUserModalLabel">Edit User</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="avatar">Image</label>
+                            <input type="file" class="form-control" name="avatar" accept="image/*">
+                        </div>
+                        <div class="mb-3">
+                            <label for="name">Name</label>
+                            <input type="text" class="form-control" id="edit_name" name="name" value="" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email">Email</label>
+                            <input type="email" class="form-control" id="edit_email" name="email" value="" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password">Password (Leave blank to keep current)</label>
+                            <input type="password" class="form-control" name="password">
+                        </div>
+                        <div class="mb-3">
+                            <label for="password_confirmation">Confirm Password</label>
+                            <input type="password" class="form-control" name="password_confirmation">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // CREATE NEW USER
+            $('#createUserForm').on('submit', function(event) {
+                event.preventDefault();
+
+                $.ajax({
+                    url: $(this).attr('action'),
+                    type: $(this).attr('method'),
+                    data: new FormData(this),
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        $('#createUserModal').modal('hide');
+                        // thêm người dùng mới
+                        let avatarHTML = response.user.avatar ? `<td><img src="${response.user.avatar}" alt="Uploaded Image" style="height:50px; width:50px"/></td>` : `<td>No Image</td>`;
+                        let newUserRow = `
+                            <tr id="tr-${response.user.id}">
+                                ${avatarHTML}
+                                <td>${response.user.name}</td>
+                                <td>${response.user.email}</td>
+                                <td>
+                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editUserModal" data-id="${response.user.id}" data-name="${response.user.name}" data-email="${response.user.email}">
+                                        Edit User
+                                    </button>                           
+                                    
+                                    <form data-url="/users/delete?id=${response.user.id}" method="DELETE" style="display:inline;">
+                                        {% csrf_token %}
+                                        <div style="display:none;">
+                                            <input type="text" class="form-control" id="user-${response.user.id}-delete" name="user-${response.user.id}-delete" value="${response.user.id}">
+                                        </div>
+                                        <button type="submit" class="btn btn-danger" data-id="${response.user.id}">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        `;
+
+                        $('table tbody').append(newUserRow);
+                        // hiện thị thông báo thành công
+                        alert(response.message ?? 'Not found the notification!!!');
+                    },
+                    error: function(xhr) {
+                        let errorMessage = xhr.responseJSON.message ?? 'Some thing went wrong';
+                        alert(errorMessage);
+                    }
+                });
+            });
+
+            // SEARCH USER
+            $("#searchUserForm").on("submit", function(event) {
+                event.preventDefault();
+                const query = $('#searchInput').val() ?? '';
+
+                $.ajax({
+                    url: `${$(this).attr('action')}?keyword=${query}`,
+                    type: $(this).attr('method'),
+                    success: function(response) {
+                        let searchUserHtml = '';
+                        let avatarHTML = '';
+
+                        for (let user of response.users) {
+                            avatarHTML = user.avatar ? `<td><img src="${user.avatar}" alt="Uploaded Image" style="height:50px; width:50px"/></td>` : `<td>No Image</td>`;
+                            searchUserHtml += `
+                                <tr id="tr-${user.id}">
+                                    ${avatarHTML}
+                                    <td>${user.name}</td>
+                                    <td>${user.email}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editUserModal" data-id="${user.id}" data-name="${user.name}" data-email="${user.email}">
+                                            Edit User
+                                        </button>                           
+                                        
+                                        <form data-url="/users/delete?id=${user.id}" method="DELETE" style="display:inline;">
+                                            {% csrf_token %}
+                                            <div style="display:none;">
+                                                <input type="text" class="form-control" id="user-${user.id}-delete" name="user-${user.id}-delete" value="${user.id}">
+                                            </div>
+                                            <button type="submit" class="btn btn-danger" data-id="${user.id}">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            `;
+                        }
+
+                        $('table tbody').html(searchUserHtml);
+                        // $('pagination').html(response.users.)
+                    },
+                    error: function(xhr) {
+                        let errorMessage = xhr.responseJSON.message ?? 'Some thing went wrong';
+                        alert(errorMessage);
+                    }
+                });
+            });
+
+            // EDIT USER
+            $('#editUserModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var userId = button.data('id');
+                var userName = button.data('name');
+                var userEmail = button.data('email');
+
+                var modal = $(this);
+                modal.find('#edit_name').val(userName);
+                modal.find('#edit_email').val(userEmail);
+
+                var formAction = '/users/edit/:id';
+                formAction = formAction.replace(':id', userId);
+                modal.find('form').attr('action', formAction);
+            });
+
+            $('#editUserForm').on('submit', function (event) {
+                event.preventDefault();
+                let csrfToken = $(this).find('input[name="csrfmiddlewaretoken"]').val();
+                console.log(new FormData(this))
+                $.ajax({
+                    url: $(this).attr('action'),
+                    type: $(this).attr('method'),
+                    headers: {
+                        'X-CSRFToken': csrfToken  // Thêm token vào header
+                    },
+                    data: new FormData(this),
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        alert(response.message);
+                        if (response.user) {
+                            // $('#editUserModal')[0].reset();
+                            $('#editUserModal').modal('hide');
+                            
+                            let avatarHTML = response.user.avatar ? `<td><img src="${response.user.avatar}" alt="Uploaded Image" style="height:50px; width:50px"/></td>` : `<td>No Image</td>`;
+                            let updatedRow = `
+                                <tr id="tr-${response.user.id}">
+                                    ${avatarHTML}
+                                    <td>${response.user.name}</td>
+                                    <td>${response.user.email}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editUserModal" data-id="${response.user.id}" data-name="${response.user.name}" data-email="${response.user.email}">
+                                            Edit User
+                                        </button>                           
+                                        
+                                        <form data-url="/users/delete?id=${response.user.id}" method="DELETE" style="display:inline;">
+                                            {% csrf_token %}
+                                            <div style="display:none;">
+                                                <input type="text" class="form-control" id="user-${response.user.id}-delete" name="user-${response.user.id}-delete" value="${response.user.id}">
+                                            </div>
+                                            <button type="submit" class="btn btn-danger" data-id="${response.user.id}">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            `;
+
+                            // tìm kiếm bên trong <tbody> sao cho button có data-id=response.user.id (nút delete)
+                            let row = $('table tbody').find(`button[data-id="${response.user.id}"]`).closest('tr');
+                            if (row.length) {
+                                row.replaceWith(updatedRow);
+                            } else {
+                                $('table tbody').append(updatedRow);
+                            }
+                        }
+                    },
+                    error: function(xhr) {
+                        alert("Error: " + xhr.responseJSON.message); // Hiển thị lỗi
+                    }
+                });
+            });
+
+            // DELETE USER
+            $(document).on("click", ".btn.btn-danger", function (event) {
+                event.preventDefault();
+                var userId = $(this).data("id");
+                var row = $("#tr-" + userId);
+                var $form = $(this).closest("form"); // Lấy form cụ thể chứa nút được nhấn
+                var url = $form.data("url");
+                // var formData = $form.serialize(); // Lấy dữ liệu từ form đó
+                let csrfToken = $form.find('input[name="csrfmiddlewaretoken"]').val();
+                if (!confirm("Do you want to delete this user?")) {
+                    return;
+                }
+
+                $.ajax({
+                    url: url,
+                    type: $form.attr('method'),
+                    headers: {
+                        'X-CSRFToken': csrfToken  // Thêm token vào header
+                    },
+                    success: function (response) {
+                        // thay đổi html
+                        row.remove();
+                        // Hiển thị thông báo thành công
+                        alert("Success: " + response.message);
+                    },
+                    error: function (xhr) {
+                        alert("Error: " + xhr.responseJSON.message); // Hiển thị lỗi
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}
