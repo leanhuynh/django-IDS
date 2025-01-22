@@ -58,8 +58,16 @@
             </tbody>
         </table>
         
-        <div id="pagination" style="width:50%; justify-content:center">
-            <!-- Hiển thị các liên kết phân trang -->
+        <div id="pagination" class="d-flex justify-content-center">
+            {% if page_json.has_previous == 'True' %}
+            <button class="btn btn-secondary m-1"><a href="?page=1" style="color: white; text-decoration:none;">First</a></button>
+            <button class="btn btn-secondary m-1"><a href="?page={{ page_json.previous_page_number }}" style="color: white; text-decoration:none;">Previous</a></button>
+            {% endif %}
+
+            {% if page_json.has_next == 'True' %}
+            <button class="btn btn-secondary m-1"><a href="?page={{ page_json.next_page_number }}" style="color: white; text-decoration:none;">Next</a></button>
+            <button class="btn btn-secondary m-1"><a href="?page={{ page_json.num_pages }}" style="color: white; text-decoration:none;">Last</a></button>
+            {% endif %}
         </div>
     </div>
 
@@ -231,7 +239,7 @@
                         }
 
                         $('table tbody').html(searchUserHtml);
-                        // $('pagination').html(response.users.)
+                        $('#pagination').html(pagination(response.page_json));
                     },
                     error: function(xhr) {
                         let errorMessage = xhr.responseJSON.message ?? 'Some thing went wrong';
@@ -342,6 +350,71 @@
                     }
                 });
             });
+
+            // PAGINATION
+            $(document).on("click", ".btn.btn-secondary", function (event) {
+                event.preventDefault();
+                let $a = $(this).find('a'); // Lấy form cụ thể chứa nút được nhấn
+                
+                $.ajax({
+                    url: `${$a.attr('href')}`,
+                    type: 'GET',
+                    success: function(response) {
+                        let searchUserHtml = '';
+                        let avatarHTML = '';
+
+                        for (let user of response.users) {
+                            avatarHTML = user.avatar ? `<td><img src="${user.avatar}" alt="Uploaded Image" style="height:50px; width:50px"/></td>` : `<td>No Image</td>`;
+                            searchUserHtml += `
+                                <tr id="tr-${user.id}">
+                                    ${avatarHTML}
+                                    <td>${user.name}</td>
+                                    <td>${user.email}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editUserModal" data-id="${user.id}" data-name="${user.name}" data-email="${user.email}">
+                                            Edit User
+                                        </button>                           
+                                        
+                                        <form data-url="/users/delete?id=${user.id}" method="DELETE" style="display:inline;">
+                                            {% csrf_token %}
+                                            <div style="display:none;">
+                                                <input type="text" class="form-control" id="user-${user.id}-delete" name="user-${user.id}-delete" value="${user.id}">
+                                            </div>
+                                            <button type="submit" class="btn btn-danger" data-id="${user.id}">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            `;
+                        }
+
+                        $('table tbody').html(searchUserHtml);
+                        $('#pagination').html(pagination(response.page_json));
+                    },
+                    error: function(xhr) {
+                        let errorMessage = xhr.responseJSON.message ?? 'Some thing went wrong';
+                        alert(errorMessage);
+                    }
+                });
+            });
         });
+
+        function pagination(page_json) {
+            let html = '';
+            if (page_json.has_previous) {
+                html += `
+                    <button id="btn-first" class="btn btn-secondary m-1"><a href="search?page=1&keyword=${page_json.keyword}" style="color: white; text-decoration:none;">First</a></button>
+                    <button id="btn-previous" class="btn btn-secondary m-1"><a href="search?page=${page_json.previous_page_number}&keyword=${page_json.keyword}" style="color: white; text-decoration:none;">Previous</a></button>
+                `;
+            }
+
+            if (page_json.has_next) {
+                html += `
+                    <button id="btn-next" class="btn btn-secondary m-1"><a href="search?page=${page_json.next_page_number}&keyword=${page_json.keyword}" style="color: white; text-decoration:none;">Next</a></button>
+                    <button id="btn-last" class="btn btn-secondary m-1"><a href="search?page=${page_json.num_pages}&keyword=${page_json.keyword}" style="color: white; text-decoration:none;">Last</a></button>
+                `;
+            }
+
+            return html;
+        }
     </script>
 {% endblock %}

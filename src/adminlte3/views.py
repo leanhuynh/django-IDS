@@ -6,18 +6,48 @@ import bcrypt
 from django.http import JsonResponse, QueryDict
 from django.forms.models import model_to_dict
 from .utils.request import read_request_put
+from django.core.paginator import Paginator
 
 ROLE_DEFAULT = 1
+ITEM_PER_PAGE = 2
+
 
 # Create your views here.  
 def index(request):
     users = User.objects.all()
 
-    for user in users:
-        if user.avatar:
-            user.avatar = user.avatar.url  # Assign the URL of the avatar
+    page_number = request.GET.get('page', 1)  # Lấy số trang từ query params, mặc định là trang 1
+    paginator = Paginator(users, ITEM_PER_PAGE)  # Tạo đối tượng Paginator
 
-    return render(request,'../templates/adminlte/pages/index.html', {'users': users})
+    try:
+        page_obj = paginator.get_page(page_number)  # Lấy trang hiện tại
+    except Exception as e:
+        # return render(request, '../templates/adminlte/pages/index.html', {'message': str(e) + '!!', 'users': users})
+        return JsonResponse({'message': f'Error: {str(e)}'}, status=400)
+    
+    
+    # Chuyển đổi kết quả thành JSON
+    users_list = [
+        {
+            'id': user.id,
+            'name': user.name,
+            'email': user.email,
+            'avatar': user.avatar.url if user.avatar else None
+        } for user in page_obj.object_list
+    ]
+
+    page_json = {
+            'keyword': '',
+            'has_previous': page_obj.has_previous(),
+            'has_next': page_obj.has_next(),
+            'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
+            'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
+            'num_pages': page_obj.paginator.num_pages
+    }
+
+    print(page_json)
+
+    return render(request,'../templates/adminlte/pages/index.html', {'users': users_list, 'page_json': page_json})
 
 def create(request):
     try:
@@ -127,18 +157,36 @@ def search(request):
         if request.method == "GET":
             keyword = request.GET.get('keyword', '')
             users = User.objects.filter(email__icontains=keyword) | User.objects.filter(name__icontains=keyword)
-            users_json = []
-            for user in users:
-                user_json = model_to_dict(user)
-                user_json['avatar'] = user.avatar.url if user.avatar else None
-                user_json.pop('password', None)
-                users_json.append(user_json)
+            
+            # pagination
+            page_number = request.GET.get('page', 1)  # Lấy số trang từ query params, mặc định là trang 1
+            paginator = Paginator(users, ITEM_PER_PAGE)  # Tạo đối tượng Paginator
+            page_obj = paginator.get_page(page_number)  # Lấy trang hiện tại
 
-            return JsonResponse({'users': users_json}, status=200)
+            # Chuyển đổi kết quả thành JSON
+            users_json = [
+                {
+                    'id': user.id,
+                    'name': user.name,
+                    'email': user.email,
+                    'avatar': user.avatar.url if user.avatar else None
+                } for user in page_obj.object_list
+            ]
+
+            page_json = {
+                'keyword': keyword,
+                'has_previous': page_obj.has_previous(),
+                'has_next': page_obj.has_next(),
+                'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
+                'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
+                'num_pages': page_obj.paginator.num_pages
+            }
+
+            return JsonResponse({'users': users_json, 'page_json': page_json}, status=200)
         else:   
             return JsonResponse({'message': 'Method not allowed'}, status=400)
     except Exception as e:
-        return JsonResponse({'message': str(e)}, status=500)
+        return JsonResponse({'message': str(e) + '!!'}, status=500)
 
 def delete(request):
     try:
