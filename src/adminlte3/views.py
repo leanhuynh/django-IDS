@@ -11,7 +11,13 @@ ROLE_DEFAULT = 1
 
 # Create your views here.  
 def index(request):
-    return render(request,'../templates/adminlte/pages/index.html')
+    users = User.objects.all()
+
+    for user in users:
+        if user.avatar:
+            user.avatar = user.avatar.url  # Assign the URL of the avatar
+
+    return render(request,'../templates/adminlte/pages/index.html', {'users': users})
 
 def create(request):
     try:
@@ -38,7 +44,7 @@ def create(request):
 
                 new_user.save()
                 new_user_json = model_to_dict(new_user)
-                new_user_json['avatar'] = new_user.avatar.url
+                new_user_json['avatar'] = new_user.avatar.url if new_user.avatar else None
                 new_user_json.pop('password', None)
 
                 return JsonResponse({'message': 'Create new user successfully!', 'user':  new_user_json}, status=201)
@@ -79,7 +85,7 @@ def edit(request, id):
                 user.save()
 
                 user_json = model_to_dict(user)
-                user_json['avatar'] = user.avatar.url
+                user_json['avatar'] = user.avatar.url if user.avatar else None
                 user_json.pop('password', None)
 
                 return JsonResponse({'message': f'Update user {user.name} successfully!', 'user':  user_json}, status=200)
