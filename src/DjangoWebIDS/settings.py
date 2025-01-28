@@ -132,7 +132,7 @@ INSTALLED_APPS = [
     'django.contrib.auth',  
     'django.contrib.contenttypes',  
     'django.contrib.sessions',  
-    'django.contrib.messages',  
+    'django.contrib.messages',
     'django.contrib.staticfiles',  
     # 'employee',
     'adminlte3',
@@ -141,3 +141,10 @@ INSTALLED_APPS = [
 # Đường dẫn đến thư mục chứa các tệp media (ảnh, tài liệu...)
 MEDIA_URL = '/media/'  # URL để truy cập ảnh trong trình duyệt
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Đường dẫn tới thư mục trên hệ thống file
+
+AUTH_USER_MODEL = 'adminlte3.user'
+
+AUTHENTICATION_BACKENDS = [
+    'adminlte3.backends.BcryptBackend',  # Backend tùy chỉnh
+    'django.contrib.auth.backends.ModelBackend',  # Backend mặc định của Django
+]

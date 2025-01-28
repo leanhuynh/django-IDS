@@ -1,18 +1,77 @@
-from django.shortcuts import render, get_object_or_404
-from .models import Role, User
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from .models import User
 from .form.register_form import RegisterForm
 from .form.edit_form import EditForm
+from .form.login_form import LoginForm
 import bcrypt
-from django.http import JsonResponse, QueryDict
+from django.http import JsonResponse
 from django.forms.models import model_to_dict
 from .utils.request import read_request_put
 from django.core.paginator import Paginator
+from django.contrib.auth.decorators import login_required
 
 ROLE_DEFAULT = 1
 ITEM_PER_PAGE = 2
 
+def user_login(request):
+    if request.method == "POST":
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            
+            user = authenticate(request, email=email, password=password)
 
-# Create your views here.  
+            if user is not None:
+                login(request, user)
+                return redirect('home')  # Redirect to a homepage or any other page
+            else:
+                # messages.error(request, "Invalid credentials")
+                return redirect('login')  # Redirect back to the login page
+        else:
+            return JsonResponse({'message': 'Form is not validate!', 'errors': form.errors}, status=400)
+    else:
+        form = LoginForm()
+
+    return render(request, '../templates/adminlte/login.html', {'form': form})
+
+def user_register(request):
+    if request.method == 'POST':
+        form = RegisterForm(request.POST, request.FILES)
+        if form.is_valid():
+            cleaned_data = form.cleaned_data
+            name = cleaned_data.get('name')
+            email = cleaned_data.get('email')
+            password = cleaned_data.get('password')
+            role_id = ROLE_DEFAULT
+            avatar = cleaned_data.get('avatar')
+
+            # save image into storage
+            new_user = User(
+                name=name,
+                email=email,
+                password=bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
+                role_id=role_id,
+                avatar=avatar
+            )
+
+            new_user.save()
+            new_user_json = model_to_dict(new_user)
+            new_user_json['avatar'] = new_user.avatar.url if new_user.avatar else None
+            new_user_json.pop('password', None)
+
+            return redirect('login')
+        else:
+            return JsonResponse({'message': 'Form is not validate!', 'errors': form.errors}, status=400)
+    else:
+        form = RegisterForm()
+
+    return render(request, '../templates/adminlte/register.html')
+
+# Create your views here. 
+@login_required 
 def index(request):
     users = User.objects.all()
 
@@ -45,8 +104,6 @@ def index(request):
             'num_pages': page_obj.paginator.num_pages
     }
 
-    print(page_json)
-
     return render(request,'../templates/adminlte/pages/index.html', {'users': users_list, 'page_json': page_json})
 
 def create(request):
@@ -67,7 +124,7 @@ def create(request):
                 new_user = User(
                     name=name,
                     email=email,
-                    password=bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()),
+                    password=bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
                     role_id=role_id,
                     avatar=avatar
                 )
